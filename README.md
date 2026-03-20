@@ -9,11 +9,11 @@ UCSC Genome Browser assembly hub for visualizing RNA modifications on human rRNA
 ```
 rRNA_dataviz_repo/
 ├── Test_visualization_data_rRNA/       # Input data
-│   ├── H.sapiens_ref_bedRmod_All.bed                          # Curated reference modifications (all known sites)
-│   ├── hs_rRNAs_NR_046235.fa                                  # Human rRNA reference sequences (FASTA)
-│   ├── hs_rRNAs_NR_046235.fa.fai                              # FASTA index
-│   ├── rRNA_mature_bedRmod_Detection_EM_mean2_Log10_1.8_modOnly_Sample_MRI01.bed   # Experimental sample (MRI01)
-│   └── rRNA_mature_Filtered_MOD_10_MULT_1000_bedRmod_0.99_Allmods_no_m5C.bed      # Filtered high-confidence sites
+│   ├── H.sapiens_ref_bedRmod_All.bed                                              # Curated reference modifications (all known sites)
+│   ├── hs_rRNAs_NR_046235.fa                                                      # Human rRNA reference sequences (FASTA)
+│   ├── hs_rRNAs_NR_046235.fa.fai                                                  # FASTA index
+│   ├── rRNA_mature_bedRmod_Detection_EM_mean2_Log10_1.8_modOnly_Sample_MRI01.bed  # Experimental sample (MRI01)
+│   └── rRNA_mature_Filtered_MOD_10_MULT_1000_bedRmod_0.99_Allmods _no_m5C.bed    # Filtered high-confidence sites
 │
 ├── Scripts/
 │   └── pipeline.py                     # End-to-end pipeline (see below)
@@ -23,7 +23,8 @@ rRNA_dataviz_repo/
 │   ├── genomes.txt                     # Custom genome definition
 │   ├── trackDb.txt                     # Track display configuration
 │   ├── hubDescription.html             # Hub description page
-│   ├── hs_rRNAs_NR_046235.2bit         # Reference sequence in UCSC binary format
+│   ├── rRNA_mods.as                    # AutoSql field definitions for bigBed extra columns
+│   ├── hs_rRNAs_NR_046235.2bit         # Reference sequence in UCSC binary format (generated separately)
 │   ├── *.fixed.bed                     # Intermediate fixed BED files
 │   └── *.bigBed                        # Final binary track files for UCSC
 │
@@ -45,6 +46,8 @@ curl -O https://hgdownload.soe.ucsc.edu/admin/exe/macOSX.arm64/faToTwoBit
 chmod +x bedToBigBed faToTwoBit
 ```
 
+Place both tools in the same directory as `pipeline.py`, or anywhere on your PATH.
+
 ### Steps
 
 **1. Run the pipeline from the repo root:**
@@ -56,8 +59,10 @@ python Scripts/pipeline.py
 
 This will:
 - Recolor each BED file — hue encodes modification type, saturation encodes modification frequency
-- Trim and sort each BED file to the 9-column format required by UCSC
-- Convert each BED file to bigBed format using `bedToBigBed`
+- Rescale scores to 0–1000 range (required by UCSC)
+- Keep all 11 columns including coverage and frequency as extra fields
+- Generate an AutoSql `.as` file (`rRNA_mods.as`) describing all 11 columns
+- Convert each BED file to bigBed format using `bedToBigBed -type=bed9+2 -as=rRNA_mods.as`
 - Generate `hub.txt`, `genomes.txt`, `trackDb.txt`, and `hubDescription.html` in `ucsc_hub/`
 
 **2. Convert the FASTA reference to .2bit format:**
@@ -69,6 +74,7 @@ This will:
 **3. Push everything to GitHub:**
 
 ```bash
+cd /Users/baihesun/Downloads/rRNA_dataviz_repo
 git add .
 git commit -m "Update hub files"
 git push -u origin main
@@ -91,8 +97,24 @@ https://baihesun.github.io/rRNA_dataviz/ucsc_hub/hub.txt
 | Track | Description |
 |---|---|
 | Reference mods | Curated known modifications from published literature |
-| MRI01 detected | Modifications detected in sample MRI01  |
-| Filtered mods | High-confidence sites |
+| MRI01 detected | Modifications detected in sample MRI01 (EM algorithm, log10 score > 1.8) |
+| Filtered mods | High-confidence sites (coverage ≥ 1000, frequency ≥ 0.99, no m5C) |
+
+### BED columns
+
+Each track retains all 11 columns from the original bedRmod format. Clicking a site in UCSC will show all fields in a popup.
+
+| Column | Field | Description |
+|---|---|---|
+| 1 | chrom | rRNA molecule (e.g. hs_rRNA_18S) |
+| 2–3 | chromStart / chromEnd | Position of the modified site (0-based) |
+| 4 | name | Modification type (e.g. Am, Y, m6A) |
+| 5 | score | Detection score rescaled to 0–1000 |
+| 6 | strand | Always + for rRNA |
+| 7–8 | thickStart / thickEnd | Same as start/end (display only) |
+| 9 | itemRgb | Color encoding mod type (hue) and frequency (saturation) |
+| 10 | coverage | Number of reads covering this position |
+| 11 | frequency | Percentage of reads showing the modification (0–100) |
 
 ### Color scheme
 
