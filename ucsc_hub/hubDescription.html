@@ -6,6 +6,14 @@ Vivid colors indicate highly modified sites; pale colors indicate partially modi
 <p>The score (shading intensity) reflects detection confidence, rescaled to 0-1000 per file.
 Darker = higher confidence. Note: scores are rescaled independently per file and are not
 directly comparable across tracks.</p>
+<h2>Consensus track</h2>
+<p>The <strong>Consensus</strong> track merges the sample and filtered tracks.
+Colors use a sequential red scale based on how often the modification is observed:</p>
+<table border="1" cellpadding="4">
+<tr><th>Observation</th><th>Color</th></tr>
+<tr><td>1 / 2 samples</td><td style="background:#d97373">Light red</td></tr>
+<tr><td>2 / 2 samples</td><td style="background:#b40000;color:white">Dark red</td></tr>
+</table>
 <h2>Extra fields (visible on click)</h2>
 <p>Clicking any site in the browser shows coverage (raw read depth) and frequency
 (% of reads showing the modification).</p>
